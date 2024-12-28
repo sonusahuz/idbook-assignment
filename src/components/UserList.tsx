@@ -46,6 +46,10 @@ const UserList = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns = React.useMemo<ColumnDef<User, any>[]>(
     () => [
+      columnHelper.accessor('id', {
+        cell: (info) => info.getValue(),
+        header: () => <span>Id</span>,
+      }),
       columnHelper.accessor('name', {
         cell: (info) => info.getValue(),
         header: () => <span>Name</span>,
