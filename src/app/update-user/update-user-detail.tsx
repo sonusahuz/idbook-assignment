@@ -1,18 +1,22 @@
 'use client';
-
 import { CreateUserSchema, FormData } from '@/schema/userSchema';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUserStore } from '@/store/userStore';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default function UserForm() {
+export default function UpdateUserDetail({ id }: { id: string }) {
   const router = useRouter();
-  const { addUser, fetchUsers } = useUserStore();
+  const userId = id;
+
+  const { addUser, updateUser, singleUser } = useUserStore();
+
   const {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     defaultValues: {
@@ -23,24 +27,43 @@ export default function UserForm() {
     resolver: zodResolver(CreateUserSchema),
   });
 
+  useEffect(() => {
+    if (userId) {
+      // Fetch user details and pre-fill form
+      singleUser(Number(userId)).then((user) => {
+        if (user) {
+          setValue('name', user.name);
+          setValue('email', user.email);
+          setValue('role', user.role);
+        }
+      });
+    }
+  }, [userId, setValue, singleUser]);
+
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      await addUser({
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      });
-      await fetchUsers();
+      if (userId) {
+        await updateUser(Number(userId), {
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        });
+      } else {
+        await addUser({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        });
+      }
       router.push('/');
-      alert('User created successfully!');
+      alert('User updated successfully!');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError('root', {
           type: 'manual',
-          message: error.message, // Access message safely
+          message: error.message,
         });
       } else {
-        // Handle non-Error cases, e.g., string or unexpected types
         setError('root', {
           type: 'manual',
           message: 'An unexpected error occurred.',
@@ -54,7 +77,7 @@ export default function UserForm() {
       <div className="max-w-md w-full space-y-8 bg-white shadow-lg rounded-lg p-6">
         <div>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Create User
+            {userId ? 'Update User' : 'Create User'}
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -112,25 +135,13 @@ export default function UserForm() {
           <div>
             <button
               type="submit"
-              className="group items-center gap-2 relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <div className={isSubmitting ? 'hidden' : 'block'}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
-              </div>
-              {isSubmitting ? 'Please wait...' : 'Create User'}
+              {isSubmitting
+                ? 'Please wait...'
+                : userId
+                ? 'Update User'
+                : 'Create User'}
             </button>
           </div>
         </form>
